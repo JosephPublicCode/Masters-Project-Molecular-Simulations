@@ -1,0 +1,114 @@
+# Initilization of the rod of sphere systems. 
+
+units			si 
+dimension 		3 
+boundary		p p p 
+atom_style		bond
+
+# Variables. 
+
+variable 		timestep_1 equal 1e-12
+variable        	timestep_2 equal 2e-12 
+variable		k_b equal 1.3806e-23
+variable 		T equal 300
+variable		sigma equal 7e-9
+variable        	lennard_jones_cutoff equal 3e-8 
+variable        	LJ_range equal 1.2e-7 
+variable		binsize equal 2e-8
+variable		deletion_radius equal 4e-9
+variable        	comm_distance equal 3.2e-8
+variable		WCA_cutoff equal 2^(1/6)*${sigma}
+
+# Well depth Values.
+
+#variable well_depth equal 0.0131*${k_b}*$T
+#variable well_depth equal 0.0262*${k_b}*$T
+#variable well_depth equal 0.00655*${k_b}*$T
+variable well_depth equal 0.0196*${k_b}*$T
+
+# The data section.
+
+#read_data       data_2000_31_0.27.txt
+read_data       data_2000_31_0.32.txt
+#read_data       data_2000_31_0.38.txt
+#read_data       data_2000_31_0.45.txt
+#read_data       data_2000_31_0.5.txt
+
+# The potential and pair style. 
+
+pair_style 		lj/cut ${LJ_range} 
+pair_coeff		1 1 ${well_depth} ${sigma} ${lennard_jones_cutoff} 
+
+
+# Neighbor Modification. 
+
+neighbor 		${binsize} bin
+neigh_modify 	every 1 delay 10
+neigh_modify 	one 10000
+neigh_modify	page 100000
+comm_modify     cutoff ${comm_distance}
+
+# Groups.
+
+group           rigid_bodies type 1 
+
+# Modify.
+
+neigh_modify    exclude molecule/intra rigid_bodies
+
+	
+# Fixes.
+
+fix	          rigid_bodies_fix rigid_bodies rigid/small molecule langevin  $T $T 100${timestep_2} 10000 reinit no 
+
+# Velocity setup.
+
+velocity	  all create $T 10000 rot yes dist gaussian
+run		      0
+velocity	  all scale $T
+
+# Deletion. 
+
+delete_atoms	overlap ${deletion_radius} rigid_bodies rigid_bodies 
+
+# Data collection.
+
+thermo_style	custom step temp press ke pe etotal atoms vol
+thermo 			100
+
+#log		       log_at_rod_langevin_2000_31_0.5_0.2.lammps
+#log		       log_at_rod_langevin_2000_31_0.27_0.2_repeat.lammps
+log		       log_at_rod_langevin_2000_31_0.32_0.15_repeat.lammps
+#log		       log_at_rod_langevin_2000_31_0.38_0.2.lammps
+#log		       log_at_rod_langevin_2000_31_0.45_0.1.lammps
+
+#dump           mydmp all atom 1000 visualisation_at_rod_langevin_2000_31_0.5_0.2.lammpstrj
+#dump           mydmp all atom 1000 visualisation_at_rod_langevin_2000_31_0.27_0.2_repeat.lammpstrj
+dump           mydmp all atom 1000 visualisation_at_rod_langevin_2000_31_0.32_0.15_repeat.lammpstrj
+#dump           mydmp all atom 1000 visualisation_at_rod_langevin_2000_31_0.38_0.2.lammpstrj
+#dump           mydmp all atom 1000 visualisation_at_rod_langevin_2000_31_0.45_0.1.lammpstrj
+
+
+# Computation of Quaternion Data. 
+
+compute        Quaternion_Computation rigid_bodies rigid/local rigid_bodies_fix mol quatw quati quatj quatk
+
+#dump           Quaternion_Computation_Dump_File_noID  rigid_bodies local 100000 Quaternion_noID_at_rod_langevin_2000_31_0.5_0.2.data c_Quaternion_Computation[2] c_Quaternion_Computation[3] c_Quaternion_Computation[4] c_Quaternion_Computation[5]
+#dump           Quaternion_Computation_Dump_File_noID  rigid_bodies local 100000 Quaternion_noID_at_rod_langevin_2000_31_0.27_0.2_repeat.data c_Quaternion_Computation[2] c_Quaternion_Computation[3] c_Quaternion_Computation[4] c_Quaternion_Computation[5]
+dump           Quaternion_Computation_Dump_File_noID  rigid_bodies local 100000 Quaternion_noID_at_rod_langevin_2000_31_0.32_0.15_repeat.data c_Quaternion_Computation[2] c_Quaternion_Computation[3] c_Quaternion_Computation[4] c_Quaternion_Computation[5]
+#dump           Quaternion_Computation_Dump_File_noID  rigid_bodies local 100000 Quaternion_noID_at_rod_langevin_2000_31_0.38_0.2.data c_Quaternion_Computation[2] c_Quaternion_Computation[3] c_Quaternion_Computation[4] c_Quaternion_Computation[5]
+#dump           Quaternion_Computation_Dump_File_noID  rigid_bodies local 100000 Quaternion_noID_at_rod_langevin_2000_31_0.45_0.1.data c_Quaternion_Computation[2] c_Quaternion_Computation[3] c_Quaternion_Computation[4] c_Quaternion_Computation[5]
+
+# Computation of atomic position data. 
+
+#dump          atomic_coordinates_dump rigid_bodies custom 100000 Coordinates_at_rod_langevin_2000_31_0.5_0.2.atom id mol type x y z 
+#dump          atomic_coordinates_dump rigid_bodies custom 100000 Coordinates_at_rod_langevin_2000_31_0.27_0.2_repeat.atom id mol type x y z 
+dump          atomic_coordinates_dump rigid_bodies custom 100000 Coordinates_at_rod_langevin_2000_31_0.32_0.15_repeat.atom id mol type x y z 
+#dump          atomic_coordinates_dump rigid_bodies custom 100000 Coordinates_at_rod_langevin_2000_31_0.38_0.2.atom id mol type x y z 
+#dump          atomic_coordinates_dump rigid_bodies custom 100000 Coordinates_at_rod_langevin_2000_31_0.45_0.1.atom id mol type x y z 
+
+# Running the system. 
+
+minimize	0 0 1000 100000
+timestep        ${timestep_2}
+run             500000
